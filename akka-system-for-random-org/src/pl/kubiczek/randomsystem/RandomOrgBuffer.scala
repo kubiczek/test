@@ -14,11 +14,11 @@ class RandomOrgBuffer extends Actor with ActorLogging {
 
   def receive = LoggingReceive {
     case RandomRequest =>
-      log.info("RandomRequest received by RandomOrgBuffer actor.")
+      log.info("RandomRequest received.")
       if (buffer.isEmpty) {
         buffer ++= fetchRandomNumbers(50)
       }
-      log.info("Response is send back by RandomOrgBuffer actor")
+      log.info("Response with random number is send back.")
       sender ! buffer.dequeue()
   }
 
