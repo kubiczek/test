@@ -5,32 +5,50 @@ import scala.io.Source
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.event.LoggingReceive
+import akka.actor.Props
+import akka.actor.ActorRef
 
 case object RandomRequest
 
 class RandomOrgBuffer extends Actor with ActorLogging {
 
-  val buffer = new Queue[Int]
+  val BatchSize = 50
 
-  def receive = LoggingReceive {
+  val buffer = new Queue[Int]
+  val backlog = new Queue[ActorRef]
+  var waitingForResponse = false
+
+  val randomOrgClient = context.actorOf(Props[RandomOrgClient], name = "randomOrgClient")
+  preFetchIfAlmostEmpty()
+
+  def receive = {
     case RandomRequest =>
       log.info("RandomRequest received.")
+      preFetchIfAlmostEmpty()
       if (buffer.isEmpty) {
-        buffer ++= fetchRandomNumbers(50)
+        log.info("Sender pushed to backlog queue.")
+        backlog += sender
+      } else {
+        log.info("Response with random number is send back.")
+        sender ! buffer.dequeue()
       }
-      log.info("Response with random number is send back.")
-      sender ! buffer.dequeue()
+    case RandomOrgServerResponse(randomNumbers) =>
+      log.info("Random numbers fetched succesfully: " + randomNumbers)
+      buffer ++= randomNumbers
+      waitingForResponse = false
+      while (!backlog.isEmpty && !buffer.isEmpty) {
+        log.info("Response with random number is send back to sender from backlog queue.")
+        backlog.dequeue() ! buffer.dequeue()
+      }
+      preFetchIfAlmostEmpty()
   }
 
-  def fetchRandomNumbers(count: Int) = {
-    log.info("Fetching random numbers from random.org server...")
-    val url = new URL("https://www.random.org/integers/?num=" + count + "&min=0&max=65535&col=1&base=10&format=plain&rnd=new")
-    val connection = url.openConnection()
-    val stream = Source.fromInputStream(connection.getInputStream)
-    val randomNumbers = stream.getLines().map(_.toInt).toList
-    stream.close()
-    log.info("Random numbers fetched succesfully: " + randomNumbers)
-    randomNumbers
+  private def preFetchIfAlmostEmpty() {
+    if (buffer.size <= BatchSize / 4 && !waitingForResponse) {
+      log.info("Fetching random numbers from random.org server...")
+      randomOrgClient ! FetchFromRandomOrg(BatchSize)
+      waitingForResponse = true
+    }
   }
 
 }

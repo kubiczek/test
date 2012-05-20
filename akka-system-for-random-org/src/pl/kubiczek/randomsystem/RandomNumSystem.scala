@@ -15,11 +15,20 @@ object RandomNumSystem {
     val system = ActorSystem("Akka")
     val randomOrgBuffer = system.actorOf(Props[RandomOrgBuffer], "randomOrg")
 
-    implicit val timeout = Timeout(5 seconds)
-    val future = randomOrgBuffer ? RandomRequest
-    val veryRandom: Int = Await.result(future.mapTo[Int], 1 minute)
+    for (i <- 1 to 102) {
+      // asynchronous communication, tell mode
+      randomOrgBuffer ! RandomRequest
 
-    println(veryRandom)
+      // synchronous communication, ask mode      
+      //implicit val timeout = Timeout(5 seconds)
+      //val future = randomOrgBuffer ? RandomRequest
+      //val veryRandom: Int = Await.result(future.mapTo[Int], 1 minute)
+      //println(veryRandom)
+
+      // go sleep for a while before next iteration of for-loop
+      Thread.sleep(40)
+    }
+
     system.shutdown()
   }
 
