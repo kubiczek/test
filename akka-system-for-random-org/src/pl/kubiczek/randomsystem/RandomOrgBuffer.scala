@@ -18,6 +18,7 @@ class RandomOrgBuffer extends Actor with ActorLogging {
       if (buffer.isEmpty) {
         buffer ++= fetchRandomNumbers(50)
       }
+      log.info("Response is send back by RandomOrgBuffer actor")
       sender ! buffer.dequeue()
   }
 
