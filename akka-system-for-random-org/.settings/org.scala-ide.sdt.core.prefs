@@ -50,6 +50,7 @@ nowarn=false
 optimise=false
 organizeimports.expandcollapse=expand
 organizeimports.groups=java$scala$org$com
+organizeimports.useProjectSpecificSettings=false
 organizeimports.wildcards=scalaz$scalaz.Scalaz
 scala.compiler.useProjectSettings=false
 syntaxColouring.bracket.bold=false
